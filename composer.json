@@ -3,7 +3,7 @@
     "description": "Slim Doctrine Microservice Library",
     "type": "library",
     "keywords": ["slim", "doctrine", "microservice", "library"],
-    "homepage": "https://github.com/ideahut",
+    "homepage": "https://github.com/ideahut/sdms",
     "license": "MIT",
     "minimum-stability": "dev",
     "authors": [
