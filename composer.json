@@ -20,6 +20,6 @@
         "predis/predis": "^1.1"        
     },
     "autoload": {
-        "psr-0": {"Ideahut\\sdms": "src"}
+        "psr-4": {"Ideahut\\sdms": "src"}
     }
 }
