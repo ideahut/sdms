@@ -17,8 +17,7 @@
         "doctrine/orm": "^2.6",
         "monolog/monolog": "^1.24",
         "awurth/slim-validation": "^3.1",
-        "predis/predis": "^1.1",
-        "tomato/hessian-php": "dev-master"
+        "predis/predis": "^1.1"        
     },
     "autoload": {
         "psr-0": {"Ideahut\\sdms": "src"}
