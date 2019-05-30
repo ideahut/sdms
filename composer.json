@@ -5,7 +5,6 @@
     "keywords": ["slim", "doctrine", "microservice", "library"],
     "homepage": "https://github.com/ideahut/sdms",
     "license": "MIT",
-    "minimum-stability": "dev",
     "authors": [
         {
             "name": "Thomson Napitupulu",
