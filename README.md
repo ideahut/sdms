@@ -2,4 +2,4 @@
 Microservice (PHP + Slim + Doctrine)
 
 # composer
-composer require ideahut/sdms
+composer require <b>ideahut/sdms</b>
