@@ -30,7 +30,7 @@ final class DocsUtil {
         foreach($ENTITY as $namespace) {
             $entity_space[$namespace] = scandir(self::getDirectory($SETTINGS, $namespace));
         }
-        
+
         $ctrl_space = [];
         foreach($CONTROLLER as $namespace) {
             $ctrl_space[$namespace] = scandir(self::getDirectory($SETTINGS, $namespace));
@@ -212,7 +212,7 @@ final class DocsUtil {
         
         
         // ENTITY
-        foreach($entity_space as $namespace=>$entity_files) {
+        foreach($entity_space as $namespace => $entity_files) {
             foreach($entity_files as $file) {
                 $len = strlen($file);
                 if (substr($file, $len - 4, $len) !== '.php') {
@@ -329,7 +329,7 @@ final class DocsUtil {
                 if (substr($dir, 0, 1) === '/') {
                     $dir = substr($dir, 1);
                 }
-                return Common::SELF_DIR . '/src/' . $dir;
+                return Common::SELF_DIR . '/' . $dir;
             }
         }
         $APP_DIR = $settings[Common::SETTING_APP_DIR];
