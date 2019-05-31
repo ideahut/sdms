@@ -12,7 +12,7 @@ use \Ideahut\sdms\Common;
 
 final class DocsUtil {
 
-	/**
+    /**
      * HTML
      * 
      * Menampilkan semua endpoint di controller termasuk parameter, return, dan entity dalam format HTML
@@ -321,22 +321,32 @@ final class DocsUtil {
     }
     
     private static function getDirectory($settings, $namespace) {
-        $pos = strpos($namespace, '\\Ideahut\\sdms\\');
-        if ($pos === 0) {
-            return Common::SELF_DIR . '/src/';
+        $libprefix = ['\\Ideahut\\sdms\\', 'Ideahut\\sdms\\'];
+        foreach ($libprefix as $prefix) {
+            $pos = strpos($namespace, $prefix);
+            if ($pos === 0) {
+                $dir = str_replace('\\', '/', substr($namespace, $pos + strlen($prefix)));
+                if (substr($dir, 0, 1) === '/') {
+                    $dir = substr($dir, 1);
+                }
+                return Common::SELF_DIR . '/src/' . $dir;
+            }
         }
-
-        $pos = strpos($namespace, 'Ideahut\\sdms\\');
-        if ($pos === 0) {
-            return Common::SELF_DIR . '/src/';   
-        }
-
         $APP_DIR = $settings[Common::SETTING_APP_DIR];
         foreach($settings[Common::SETTING_NAMESPACE_DIR] as $prefix => $location) {
             $pos = strpos($namespace, $prefix);
             if ($pos === 0) {
-                $location = '/' . str_replace('\\', '/', $location);
-                return $APP_DIR . $location;
+                $dir = str_replace('\\', '/', substr($namespace, strlen($prefix)));
+                if (substr($dir, 0, 1) === '/') {
+                    $dir = substr($dir, 1);
+                }
+                if (substr($location, 0, 1) !== '/') {
+                    $location = '/' . $location;
+                }
+                if (substr($location, -1) !== '/') {
+                    $location = $location . '/';
+                }
+                return $APP_DIR . $location . $dir;
             }
         }
         throw new Exception("Invalid settings for: " . Common::SETTING_NAMESPACE_DIR);
