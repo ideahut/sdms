@@ -1,8 +1,10 @@
 <?php
 namespace Ideahut\sdms\object;
 
+use \Ideahut\sdms\annotation as IDH;
+
 /**
- * @FORMAT(show_null=false)
+ * @IDH\Format
  */
 class Result
 {
@@ -30,33 +32,24 @@ class Result
 	const ERR_SYSTEM 			  = ["99", "System error"];	
 
 
-
 	/**
-	 * @DESCRIPTION SUCCESS / INPROGRESS / FAILED / ERROR
-	 * @TYPE string
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="SUCCESS / INPROGRESS / FAILED / ERROR", type="string")
+     */
 	public $status;
 	
 	/**
-	 * @DESCRIPTION Daftar error, terdiri dari kode dan pesan
-	 * @TYPE Array[<a href="#entity_CodeMsg">CodeMsg</a>]
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="List of error", type={"Array", CodeMsg::class})
+     */
 	public $error; // List of CodeMsg
 	
 	/**
-	 * @DESCRIPTION Data respons
-	 * @TYPE object
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="Data", type="Array[object] / object")
+     */
 	public $data;
 	
 	/**
-	 * @DESCRIPTION Informasi tambahan
-	 * @TYPE Array[{key: value}]
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="Information", type="Array[{key: value}]")
+     */
 	public $info;	
 	
 	

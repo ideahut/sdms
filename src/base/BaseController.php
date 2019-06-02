@@ -1,6 +1,8 @@
 <?php
 namespace Ideahut\sdms\base;
 
+use \Ideahut\sdms\annotation as IDH;
+
 abstract class BaseController extends BaseService
 {
 
@@ -27,7 +29,7 @@ abstract class BaseController extends BaseService
     }
 
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function setConfig($config) {
 		$this->config = $config;
@@ -35,14 +37,14 @@ abstract class BaseController extends BaseService
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function getConfig() {
 		return $this->config;
 	}
 
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function setArgs($args) {
 		$this->args = $args;
@@ -50,7 +52,7 @@ abstract class BaseController extends BaseService
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function getArgs() {
 		return $this->args;

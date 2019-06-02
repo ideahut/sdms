@@ -2,6 +2,7 @@
 namespace Ideahut\sdms\base;
 
 use \Ideahut\sdms\Common;
+use \Ideahut\sdms\annotation as IDH;
 
 abstract class BaseApp
 {
@@ -17,7 +18,7 @@ abstract class BaseApp
     }
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function setApp($app) {
 		$this->app = $app;
@@ -25,42 +26,42 @@ abstract class BaseApp
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */ 
 	public function getApp() {
 		return $this->app;
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function getSettings() {
 		return $this->app->getContainer()[Common::SETTING_SETTINGS];
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function getLogger() {
 		return $this->app->getContainer()[Common::SETTING_LOGGER];
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function getCache() {
 		return $this->app->getContainer()[Common::SETTING_CACHE];
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function getEntityManager() {
 		return $this->app->getContainer()[Common::SETTING_ENTITY_MANAGER];
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function getDatabase() {
 		return $this->app->getContainer()[Common::SETTING_DATABASE];

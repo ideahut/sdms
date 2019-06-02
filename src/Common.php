@@ -40,21 +40,6 @@ final class Common
 
 
 	/**
-	 * ANNOTATION
-	 */
-	const ANNOTATION_DESCRIPTION	= "DESCRIPTION";
-	const ANNOTATION_PARAMETER		= "PARAMETER";
-	const ANNOTATION_BODY			= "BODY";
-	const ANNOTATION_PUBLIC			= "PUBLIC";
-	const ANNOTATION_RETURN			= "RETURN";
-	const ANNOTATION_TYPE			= "TYPE";
-	const ANNOTATION_METHOD			= "METHOD";
-	const ANNOTATION_FORMAT			= "FORMAT";
-	const ANNOTATION_DOCUMENT		= "DOCUMENT";
-	const ANNOTATION_VALIDATOR		= "VALIDATOR";
-	
-
-	/**
 	 * SETTING
 	 */
 	const SETTING_SETTINGS			= "settings";
@@ -85,6 +70,7 @@ final class Common
 	const SETTING_HESSIAN			= "hessian";
 	const SETTING_SERVICE			= "service";
 	const SETTING_IS_PUBLIC			= "is_public";
+	const SETTING_FORMAT_SHOW_NULL	= "format_show_null";
 
 	const SETTING_CORS_ORIGIN		= "cors-origin";
 	const SETTING_CORS_METHODS		= "cors-methods";
@@ -105,5 +91,32 @@ final class Common
 	 */
 	const ACCESS_EXPIRED = 86400; // detik
 	
-		
+
+
+
+	/*
+	 * INIT
+	 */
+	private static $SETTINGS = [];
+
+	public static function init($value = []) {
+		\Doctrine\Common\Annotations\AnnotationRegistry::registerLoader('class_exists');
+		self::$SETTINGS = isset($value['settings']) ? $value['settings'] : [];		
+		if (isset($value['ignore_annotation'])) {
+			$ignore = $value['ignore_annotation'];
+			if (is_array($ignore)) {
+				foreach ($ignore as $str) {
+					\Doctrine\Common\Annotations\AnnotationReader::addGlobalIgnoredName($str);
+				}
+			} 
+			else if (is_string($ignore)){
+				\Doctrine\Common\Annotations\AnnotationReader::addGlobalIgnoredName($ignore);
+			}
+		}
+	}
+
+	public static function getSettings() {
+		return self::$SETTINGS;
+	}
+
 }

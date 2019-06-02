@@ -12,8 +12,7 @@ abstract class EntityStringIdTimeVersion extends EntityTimeVersion
 	/**
      * @ORM\Column(name="ID_", type = "string", nullable = false)
      * @ORM\Id
-     * @ORM\GeneratedValue(strategy = "UUID")
-     * @FORMAT     
+     * @ORM\GeneratedValue(strategy = "UUID") 
      */
 	public $id;
 

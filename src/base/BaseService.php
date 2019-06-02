@@ -1,6 +1,8 @@
 <?php
 namespace Ideahut\sdms\base;
 
+use \Ideahut\sdms\annotation as IDH;
+
 abstract class BaseService extends BaseApp
 {
 
@@ -23,7 +25,7 @@ abstract class BaseService extends BaseApp
     }
 
     /**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function setRequest($request) {
 		$this->request = $request;
@@ -31,14 +33,14 @@ abstract class BaseService extends BaseApp
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function getRequest() {
 		return $this->request;
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function setAccess($access) {
 		$this->access = $access;
@@ -46,7 +48,7 @@ abstract class BaseService extends BaseApp
 	}
 	
 	/**
-	 * @DOCUMENT(ignore=true)
+	 * @IDH\Document(ignore=true)
 	 */
 	public function getAccess() {
 		return $this->access;

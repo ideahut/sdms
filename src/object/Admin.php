@@ -1,87 +1,68 @@
 <?php
 namespace Ideahut\sdms\object;
 
+use Ideahut\sdms\annotation as IDH;
+
 /**
- * @DOCUMENT(ignore=true)
- * @FORMAT(show_null=false)
+ * @IDH\Document(ignore=true)
+ * @IDH\Format
  */
 class Admin
 {
 	/**
-     * @DESCRIPTION Class Entity
-     * @TYPE string
-	* @FORMAT
-     */
+      * @IDH\Document(description="Class Entity", type="string")
+      */
 	public $entity;
 
 	/**
-     * @DESCRIPTION Primary Key
-     * @TYPE any
-	* @FORMAT
-     */
+      * @IDH\Document(description="Primary Key", type="mixed")
+      */
 	public $pk;
 
 	/**
-     * @DESCRIPTION Nama field yang akan menjadi key untuk map
-     * @TYPE any
-	* @FORMAT
-     */
+      * @IDH\Document(description="Field name as map key", type="string")
+      */
 	public $mapkey;
 
 	/**
-     * @DESCRIPTION Page
-     * @TYPE Array[<a href="#entity_Page">Page</a>]
-	* @FORMAT(type=\Ideahut\sdms\object\Page)
-     */
+      * @IDH\Document(description="Page", type=\Ideahut\sdms\object\Page::class)
+      * @IDH\Format(type=\Ideahut\sdms\object\Page::class)
+      */
 	public $page;
 
-	/**
-     * @DESCRIPTION Offset awal data
-     * @TYPE integer
-     * @FORMAT
-     */
+     /**
+      * @IDH\Document(description="Start offset", type="integer")
+      */
 	public $start;
 
 	/**
-     * @DESCRIPTION Maksimum jumlah data
-     * @TYPE integer
-     * @FORMAT
-     */
+      * @IDH\Document(description="Limit data", type="integer")
+      */
 	public $limit;
 
-	/**
-     * @DESCRIPTION Filter data. Untuk tipe string gunakan pemisah '|'.
-     * @TYPE string atau Array[{key: value}]
-     * @FORMAT
-     */
+     /**
+      * @IDH\Document(description="Filter, for string use separator '|'", type="string / Array[{key: value}]")
+      */
 	public $filter;
 
-	/**
-     * @DESCRIPTION Pengurutan data (DESC tambahkan '-' di depan nama field). Untuk tipe string gunakan pemisah ','.
-     * @TYPE string atau Array[fields]
-     * @FORMAT
-     */
+     /**
+      * @IDH\Document(description="Order, for  descending add '-' in front of field name. For string use separator ','", type="string / Array[fields]")
+      */
 	public $order;
 
-	/**
-     * @DESCRIPTION Pengelompokan data. Untuk tipe string gunakan pemisah ','. 
-     * @TYPE string atau Array[fields]
-     * @FORMAT
-     */
+     /**
+      * @IDH\Document(description="Group, for string use separator ','", type="string / Array[fields]")
+      */
 	public $group;
 
-	/**
-     * @DESCRIPTION Daftar field yang akan diambil. Untuk tipe string gunakan pemisah ','.
-     * @TYPE string atau Array[fields]
-     * @FORMAT
-     */
+     /**
+      * @IDH\Document(description="Specific field names to retrieve, for string use separator ','", type="string / Array[fields]")
+      */
 	public $field;
 
-	/**
-     * @DESCRIPTION Nilai dari field yang akan diproses. Untuk tipe string gunakan pemisah '|'.
-     * @TYPE string atau Array[fields]
-     * @FORMAT
-     */
+     /**
+      * @IDH\Document(description="Value of field, for string use separator '|'", type="string / Array[fields]")
+      */
 	public $value;
 
 }

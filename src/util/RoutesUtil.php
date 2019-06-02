@@ -11,6 +11,9 @@ use \Psr\Http\Message\ResponseInterface as Response;
 use \Ideahut\sdms\object\Result;
 use \Ideahut\sdms\Common;
 
+use \Ideahut\sdms\annotation\Method;
+use \Ideahut\sdms\annotation\Access;
+
 
 final class RoutesUtil {
 
@@ -56,16 +59,17 @@ final class RoutesUtil {
             $ctrl_method = $ctrl_class->getMethod($mtd_name);
 
             // METHOD
-            $annotation = ObjectUtil::scanAnnotation($ctrl_method, Common::ANNOTATION_METHOD, Common::ANNOTATION_PUBLIC);
-            if (isset($annotation[Common::ANNOTATION_METHOD])) {
-                $annot_mtd = trim($annotation[Common::ANNOTATION_METHOD][0]);
-                if ($annot_mtd !== "") {
-                    $array_mtd = array_map("strtoupper", array_map("trim", explode(",", $annot_mtd)));
-                    if (!in_array($request->getMethod(), $array_mtd)) {
-                        return $response->withStatus(405);
-                    }
-                }
+            $annotation = ObjectUtil::scanAnnotation($ctrl_method, Method::class, Access::class);
+            $request_method = isset($annotation[Method::class]) ? $annotation[Method::class][0]->value : ["GET"];
+            if (is_string($request_method)) {
+                $request_method = [$request_method];
             }
+            $request_method = array_map("strtoupper", array_map("trim", $request_method));            
+            if (!in_array($request->getMethod(), $request_method)) {
+                return $response->withStatus(405);
+            }
+
+            // INSTANCE
             $ctrl_object = $ctrl_class->newInstanceArgs();
             $ctrl_object->setApp($app)->setConfig($config)->setArgs($args)->setRequest($request);
 
@@ -79,8 +83,8 @@ final class RoutesUtil {
                     $access_param = $access_setting[Common::SETTING_PARAMETER];
                 }
                 $access_object = (new ReflectionClass($access_class))->newInstanceArgs(array($ctrl_object, $access_param));
-                $is_public = isset($annotation[Common::ANNOTATION_PUBLIC]);
-                $access_data = $access_object->validate($is_public, $ctrl_method);
+                $access_rule = isset($annotation[Access::class]) ? $annotation[Access::class][0] : null;
+                $access_data = $access_object->validate($access_rule, $ctrl_method);
                 if ($access_data instanceof Result) {
                     return $route_resp->response($request, $response, $access_data);
                 }                
@@ -109,11 +113,13 @@ final class RoutesUtil {
     public static function info(Request $request, Response $response, $app, $args) {
         $out = $response->getBody();
         
+        /*
         $out->write("<<< APCu Enabled >>>\n");
         $apc = extension_loaded('apcu');
         $out->write($apc);
         $out->write("\n\n");
-        
+        */
+
         $out->write("<<< request->getMethod() >>>\n");
         $str = $request->getMethod();
         $out->write($str);
@@ -145,14 +151,7 @@ final class RoutesUtil {
         $out->write("\n\n");
         
         $out->write("<<< request->getParams() >>>\n");
-        //$str = json_encode($request->getParams());
-        //$out->write($str);
-        //$mtds = $request->getParams();
-        //foreach($mtds as $key) {
-        //  $out->write("$key = " . $request->getParam("$key") . "\n");
-        //}
         $params = $request->getParams();
-        //$keys = array_keys(params);
         foreach($params as $key => $value) {
             $out->write("$key = $value \n");
         }
@@ -163,6 +162,7 @@ final class RoutesUtil {
         $out->write($str);
         $out->write("\n\n");
         
+        /*
         $out->write("<<< FUNCTION (request) >>>\n");
         $mtds = get_class_methods($request);
         foreach($mtds as $key) {
@@ -223,6 +223,7 @@ final class RoutesUtil {
             $out->write("$key = " . json_encode($params) . "\n");
         }
         $out->write("\n\n");
+        */
         return $response;
     }   
             	

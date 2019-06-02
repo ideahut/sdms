@@ -7,7 +7,10 @@ use \Psr\Http\Message\ResponseInterface as Response;
 use ReflectionClass;
 use ReflectionMethod;
 
+use \Doctrine\ORM\Mapping as ORM;
+
 use \Ideahut\sdms\Common;
+use \Ideahut\sdms\annotation as IDH;
 
 
 final class DocsUtil {
@@ -58,14 +61,17 @@ final class DocsUtil {
         $out->write("<body style=\"font: 14px/1.5 Helvetica,Arial,Verdana,sans-serif;\">\n");
         
         // CONTROLLER
-        foreach($ctrl_space as $namespace=>$ctrl_files) {
+        foreach($ctrl_space as $namespace => $ctrl_files) {
             foreach($ctrl_files as $file) {
                 $len = strlen($file);
                 if (substr($file, $len - 4, $len) !== '.php') {
                     continue;
                 }
                 $class = new ReflectionClass($namespace . substr($file, 0, $len - 4));
-                if (self::isIgnoredForDocument($class)) continue;
+                $annotclass = ObjectUtil::scanAnnotation($class, IDH\Document::class);
+                if (isset($annotclass[IDH\Document::class]) && $annotclass[IDH\Document::class][0]->ignore === true) {
+                    continue;
+                }
 
                 $methods = $class->getMethods(ReflectionMethod::IS_PUBLIC);
                 if (count($methods) === 0) continue;
@@ -81,130 +87,80 @@ final class DocsUtil {
                 $mpath = "/" . strtolower(substr($mpath, 0, 1)) . substr($mpath, 1);
                 
                 foreach($methods as $method) {
-
-                    if (self::isIgnoredForDocument($method)) continue;
+                    $annotations = ObjectUtil::scanAnnotation(
+                        $method,
+                        IDH\Document::class,
+                        IDH\Method::class,
+                        IDH\Access::class
+                    );
+                    
+                    if (self::isIgnoredForDocument($annotations)) continue;
 
                     $path = str_replace("__", "/", $method->name);
                     $path = $mpath . "/" . $path;
 
-                    $annotations = ObjectUtil::scanAnnotation(
-                        $method,
-                        Common::ANNOTATION_DESCRIPTION, 
-                        Common::ANNOTATION_PARAMETER, 
-                        Common::ANNOTATION_BODY, 
-                        Common::ANNOTATION_RETURN,
-                        Common::ANNOTATION_PUBLIC,
-                        Common::ANNOTATION_METHOD
-                    );
-                    $description = "";
-                    if (isset($annotations[Common::ANNOTATION_DESCRIPTION])) {
-                        $list = $annotations[Common::ANNOTATION_DESCRIPTION];
-                        for ($i = 0; $i < count($list); $i++) {
-                            $description .= "<br/><small><i>" . trim($list[$i]) . "</i></small>";
-                        }
-                    }
-                    
-                    if (isset($annotations[Common::ANNOTATION_PUBLIC])) {
-                        $description .= "<br/><small><i><b><font color=\"#F00\">@" . Common::ANNOTATION_PUBLIC . "</font></b></i></small>";                        
+                    $document = $annotations[IDH\Document::class][0];
+
+                    $description = isset($document->description) ? "<br/><small><i>" . trim($document->description) . "</i></small>" : "";
+                    if (isset($annotations[IDH\Access::class]) && $annotations[IDH\Access::class][0]->public === true) {
+                        $description .= "<br/><small><i><b><font color=\"#F00\">PUBLIC</font></b></i></small>";
                     }
 
-                    $httpmethods = "";
-                    if (isset($annotations[Common::ANNOTATION_METHOD])) {
-                        $strmtd = trim($annotations[Common::ANNOTATION_METHOD][0]);
-                        if ($strmtd !== "") {
-                            $arrmtd = array_map("strtoupper", array_map("trim", explode(",", $strmtd)));
-                            $httpmethods = implode( ", ", $arrmtd);
+                    $httpmethods = "GET";
+                    if (isset($annotations[IDH\Method::class])) {
+                        $valuemethod = $annotations[IDH\Method::class][0]->value;
+                        if (is_string($valuemethod)) {
+                            $valuemethod = [$valuemethod];
                         }
+                        $valuemethod = array_map("strtoupper", array_map("trim", $valuemethod));
+                        $httpmethods = implode( ", ", $valuemethod);
                     }
                     
                     $parameter = "";
-                    if (isset($annotations[Common::ANNOTATION_PARAMETER])) {
+                    if (isset($document->parameter)) {
+                        $docparams = $document->parameter;
+                        if (!is_array($docparams)) {
+                            $docparams = [$docparams];
+                        }
                         $parameter .= "<ul>\n";
-                        $list = $annotations[Common::ANNOTATION_PARAMETER];
-                        foreach ($list as $value) {
-                            $value = trim($value);
+                        foreach ($docparams as $dparam) {
+                            if (!($dparam instanceof IDH\Parameter)) {
+                                continue;
+                            }
+                            $name = isset($dparam->name) ? trim($dparam->name) : "";
                             $parameter .= "<li>";
-                            $split = explode("=>", $value);
-                            $name = explode("->", $split[0]);
-                            $endstr = "";
-                            $parameter .= "<b>";
-                            for ($i = 0; $i < count($name); $i++) {
-                                $name[$i] = trim($name[$i]);
-                                if ($i != 0) {
-                                    $parameter .= "&lt;";
-                                    $endstr .= "&gt;";
-                                }
-                                if ($PREFIX_TXT === substr(strtolower($name[$i]), 0, $PREFIX_LEN)) {
-                                    $parameter .= "<a href=\"#entity_".substr($name[$i], $PREFIX_LEN)."\">".substr($name[$i], $PREFIX_LEN)."</a>";
-                                } else {
-                                    $parameter .= $name[$i];
-                                }
+                            if ("" !== $name) {
+                                $parameter .= "<b>" . $name . "</b>";
                             }
-                            $parameter .= $endstr . "</b>";
-                            if (count($split) > 1) {
-                                $parameter .= "<br/><small><i>".$split[1]."</i></small>";
+                            $type = self::getTypeTag($dparam->type);
+                            if ($type !== "") {
+                                $parameter .= ("" !== $name ? "<br/>" : "") . "<small>Type: " . $type . "</small>";
                             }
-                            $parameter .= "</li>\n";
+                            if (isset($dparam->description)) {
+                                $parameter .= "<br/><small><i>" . $dparam->description . "</i></small>";
+                            }
+                            $parameter .= "</li>\n";                         
                         }
                         $parameter .= "</ul>\n";
                     }
                     
-                    if (isset($annotations[Common::ANNOTATION_BODY])) {
-                        if (isset($annotations[Common::ANNOTATION_PARAMETER])) {
-                            $parameter .= "<br/>";
+                    if (isset($document->body)) {
+                        $body = self::getTypeTag($document->body);
+                        if ("" !== $body) {
+                            $parameter .= "<small>Body: " . $body . "</small>";
                         }
-                        $parameter .= "<small><i>Body:</i></small> ";
-                        $list = $annotations[Common::ANNOTATION_BODY];
-                        foreach($list as $value) {
-                            $name = explode("->", $value);
-                            $endstr = "";
-                            $parameter .= "<b>";
-                            for ($i = 0; $i < count($name); $i++) {
-                                $name[$i] = trim($name[$i]);
-                                if ($i != 0) {
-                                    $parameter .= "&lt;";
-                                    $endstr .= "&gt;";
-                                }
-                                if ($PREFIX_TXT === substr(strtolower($name[$i]), 0, $PREFIX_LEN)) {
-                                    $parameter .= "<a href=\"#entity_".substr($name[$i], $PREFIX_LEN)."\">".substr($name[$i], $PREFIX_LEN)."</a>";
-                                } else {
-                                    $parameter .= $name[$i];
-                                }
-                            }
-                            $parameter .= $endstr."</b>";
-                        }
-                    }                    
+                    }
                     $parameter .= "&nbsp;";
                     
                     $return = "";
-                    if (isset($annotations[Common::ANNOTATION_RETURN])) {
-                        $list = $annotations[Common::ANNOTATION_RETURN];
-                        foreach($list as $value) {
-                            $value = trim($value);
-                            $name = explode("->", $value);
-                            $endstr = "";
-                            $return .= "<b>";
-                            for ($i = 0; $i < count($name); $i++) {
-                                $name[$i] = trim($name[$i]);
-                                if ($i != 0) {
-                                    $return .= "&lt;";
-                                    $endstr .= "&gt;";
-                                }
-                                if ($PREFIX_TXT === substr(strtolower($name[$i]), 0, $PREFIX_LEN)) {
-                                    $return .= "<a href=\"#entity_".substr($name[$i], $PREFIX_LEN)."\">".substr($name[$i], $PREFIX_LEN)."</a>";
-                                } else {
-                                    $return .= $name[$i];
-                                }
-                            }
-                            $return .= $endstr."</b><br/>";
-                        }
+                    if (isset($document->result)) {
+                        $return .= self::getTypeTag($document->result);
                     }
-                    $return = $return."&nbsp;";
-                    
-                    $out->write("<tr><td valign=\"top\"><b>". $path ."</b>". $description ."</td><td valign=\"top\">". $httpmethods ."</td><td valign=\"top\">". $parameter ."</td><td valign=\"top\">" . $return ."</td></tr>\n");
-                    
+                    $return .= "&nbsp;";
+                    $out->write("<tr><td valign=\"top\"><b>". $path ."</b>". $description ."</td><td valign=\"top\">". $httpmethods ."</td><td valign=\"top\">". $parameter ."</td><td valign=\"top\">" . $return ."</td></tr>\n");                    
+
                 }
-                
+                    
                 $out->write("</tbody>\n");
                 $out->write("</table>\n");
             }
@@ -220,90 +176,45 @@ final class DocsUtil {
                 }
                 
                 $class = new ReflectionClass($namespace . substr($file, 0, $len - 4));
-                if (self::isIgnoredForDocument($class)) continue;
+                $annotclass = ObjectUtil::scanAnnotation($class, IDH\Document::class);
+                if (isset($annotclass[IDH\Document::class]) && $annotclass[IDH\Document::class][0]->ignore === true) {
+                    continue;                    
+                }
 
                 $out->write("<table width=\"100%\" id=\"entity\">\n");
                 $out->write("<thead>\n");
-                $out->write("<tr><th colspan=\"3\" class=\"title\"><center><b><span id=\"entity_" . $class->getShortName() . "\"><b>" . $class->getShortName() . "</b></span></center></th></tr>\n");
+                $out->write("<tr><th colspan=\"3\" class=\"title\"><center><b><span id=\"object_" . str_replace("\\", "_", $class->name) . "\"><b>" . $class->getShortName() . "</b></span></center></th></tr>\n");
                 $out->write("<tr><th align=\"center\" width=\"34%\"><b>FIELD</b></th><th align=\"center\" width=\"33%\"><b>TYPE</b></th><th align=\"center\" width=\"33%\"><b>DESCRIPTION</b></th></tr>\n");
                 $out->write("</thead>\n");
                 $out->write("<tbody>\n");
                 foreach ($class->getProperties() as $prop) {
-                    if (self::isIgnoredForDocument($prop)) continue;
+                    
                     $annotations = ObjectUtil::scanAnnotation(
                         $prop, 
-                        'ORM\\Column',
-                        'ORM\\ManyToOne',
-                        'ORM\\OneToMany',
-                        Common::ANNOTATION_DESCRIPTION,
-                        Common::ANNOTATION_TYPE,
-                        Common::ANNOTATION_FORMAT
+                        ORM\Column::class,
+                        IDH\Document::class
                     );
+                    if (self::isIgnoredForDocument($annotations)) continue;
+                    
+                    $document = $annotations[IDH\Document::class][0];
+
                     $type = "";
-                    if (isset($annotations['ORM\\Column'])) {
-                        $column = trim($annotations['ORM\\Column'][0]);
-                        $pos = strpos($column, '(');
-                        if ($pos !== false) {
-                            $column = trim(substr($column, $pos + 1));
-                        }
-                        $pos = strrpos($column, ')');
-                        if ($pos !== false) {
-                            $column = trim(substr($column, 0, $pos));
-                        }
-                        $exp = explode(",", $column);
-                        foreach ($exp as $ss) {
-                            $ss = explode("=", $ss);
-                            if (strtolower(trim($ss[0])) === "type") {
-                                $type = trim($ss[1]);
-                                $type = substr($type, 1, -1);
-                                break;
-                            }
-                        }
-                    } 
-                    
-                    if (isset($annotations['ORM\\ManyToOne']) || isset($annotations['ORM\\OneToMany'])) {
-                        $is_OneToMany = isset($annotations['ORM\\OneToMany']);
-                        $column = trim($annotations[$is_OneToMany ? 'ORM\\OneToMany' : 'ORM\\ManyToOne'][0]);
-                        $pos = strpos($column, '(');
-                        if ($pos !== false) {
-                            $column = trim(substr($column, $pos + 1));
-                        }
-                        $pos = strrpos($column, ')');
-                        if ($pos !== false) {
-                            $column = trim(substr($column, 0, $pos));
-                        }
-                        $exp = explode(",", $column);
-                        foreach ($exp as $ss) {
-                            $ss = explode("=", $ss);
-                            if (strtolower(trim($ss[0])) === "targetentity") {
-                                $type = substr(trim($ss[1]), 1, -1);
-                                $type = "<a href=\"#entity_" . $type . "\">" . $type . "</a>";
-                                break;
-                            }
-                        }
-                    }
-                    
-                    if (isset($annotations[Common::ANNOTATION_TYPE])) {
-                        $type = trim($annotations[Common::ANNOTATION_TYPE][0]);
-                    }
-                                        
-                    $description = "";
-                    if (isset($annotations[Common::ANNOTATION_DESCRIPTION])) {
-                        $list = $annotations[Common::ANNOTATION_DESCRIPTION];
-                        for ($i = 0; $i < count($list); $i++) {
-                            if ($i != 0) {
-                                $description .= "<br/>";
-                            }
-                            $description .= trim($list[$i]);
-                        }
+
+                    if (isset($annotations[ORM\Column::class])) {
+                        $column = $annotations[ORM\Column::class][0];
+                        $type = $column->type;                         
+                    } else {
+                        $type = self::getTypeTag($document->type);
                     }
 
+                                        
+                    $description = isset($document->description) ? trim($document->description) : "";
+
                     $name = $prop->name;
-                    if (isset($annotations[Common::ANNOTATION_FORMAT])) {
-                        $str = $annotations[Common::ANNOTATION_FORMAT][0];
-                        $param = ObjectUtil::parseStr($str, "(", ")");
-                        if (isset($param["alias"])) {
-                            $name = trim($param["alias"]);
+                    if (isset($annotations[ORM\Format::class])) {
+                        $format = $annotations[ORM\Format::class][0];
+                        if (isset($format->alias)) {
+                            $name = trim($format->alias);
                         }
                     }
                     
@@ -352,21 +263,52 @@ final class DocsUtil {
         throw new Exception("Invalid settings for: " . Common::SETTING_NAMESPACE_DIR);
     }
 
-    private static function isIgnoredForDocument($class_or_method_or_property) {
-        $annot = ObjectUtil::scanAnnotation($class_or_method_or_property, Common::ANNOTATION_DOCUMENT);
-        if (isset($annot[Common::ANNOTATION_DOCUMENT])) {
-            $arr = $annot[Common::ANNOTATION_DOCUMENT];
-            if (count($arr) > 0) {
-                $param = ObjectUtil::parseStr($arr[0], "(", ")");
-                if (isset($param["ignore"])) {
-                    $ignore = strtolower(trim($param["ignore"]));
-                    if ("true" === $ignore || "1" === $ignore) {
-                        return true;
-                    }
-                }       
-            }
+    private static function isIgnoredForDocument($annotations) {
+        if (!isset($annotations[IDH\Document::class])) {
+            return true;
         }
-        return false;
+        $document = $annotations[IDH\Document::class][0];
+        return $document->ignore;
     }
 
+    private static function getTypeTag($type) {
+        $ctype = $type;
+        if ($ctype instanceof IDH\Type) {
+            $ctype = $ctype->value;
+        }
+        $result = '';
+        if (isset($ctype)) {
+            if (is_array($ctype) && count($ctype) != 0) {
+                $maintype = $ctype[0];
+                if (class_exists($maintype)) {
+                    $mainref = new \ReflectionClass($maintype);
+                    $result .= '<a href="#object_' . str_replace("\\", "_", $mainref->getName()) . '">' . $mainref->getShortName() . '</a>';
+                }
+                else {
+                    $result .= $maintype;
+                }
+                $size = count($ctype);
+                if ($size > 1) {
+                    $result .= '&lt;';
+                    $endstr = '';
+                    for ($i = 1; $i < $size; $i++) {
+                        $result .= self::getTypeTag($ctype[$i]);
+                        if ($i < $size - 1) {
+                            $result .= '&lt;';
+                        }
+                        $endstr .= '&gt;';
+                    }
+                    $result .= $endstr;                    
+                }
+            }
+            else if (class_exists($ctype)) {
+                $ref = new \ReflectionClass($ctype);
+                $result .= '<a href="#object_' . str_replace("\\", "_", $ref->getName()) . '">' . $ref->getShortName() . '</a>';
+            }
+            else {
+                $result .= $ctype;
+            } 
+        }
+        return $result;
+    }
 }

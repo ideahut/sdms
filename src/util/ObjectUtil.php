@@ -6,8 +6,13 @@ use ReflectionClass;
 use ReflectionMethod;
 use ReflectionProperty;
 
+use \Doctrine\Common\Annotations\AnnotationReader;
+use \Doctrine\Common\Util\ClassUtils;
+
 use \Ideahut\sdms\Common;
 use \Ideahut\sdms\base\BaseFormat;
+use \Ideahut\sdms\annotation\Format;
+use \Ideahut\sdms\annotation\Type;
 
 final class ObjectUtil
 {
@@ -157,96 +162,60 @@ final class ObjectUtil
 	
 	
 	/**
-	 * Membaca Annotation di comment, seperti: @DESCRIPTION, @PARAMETER, @RETURN
-	 * $names = spesifik nama yang dicari, cth: ['DESCRIPTION', 'PARAMETER']
+	 * Membaca Annotation
 	 */
 	public static function scanAnnotation($class_or_method_or_property) {
+		$narg = func_num_args();
+		$argv = func_get_args();
+		$classes = [];		
+		if ($narg > 1) {    		
+    		for ($i = 1; $i < $narg; $i++) {
+    			if (!class_exists($argv[$i])) {
+    				continue;
+    			}
+    			array_push($classes, $argv[$i]);
+    		}
+    	}
+
+    	$ref = $class_or_method_or_property;
+		$reader = new AnnotationReader();
+
+		$annotations = null;
+		if ($ref instanceof ReflectionClass) {
+			$annotations = $reader->getClassAnnotations($ref);
+		} 
+		else if ($ref instanceof ReflectionMethod) {
+			$annotations = $reader->getMethodAnnotations($ref);
+		}
+		else if ($ref instanceof ReflectionProperty) {
+			$annotations = $reader->getPropertyAnnotations($ref);
+		}
+		else {
+			throw new Exception("Annotation scan is only support ReflectionClass or ReflectionMethod or ReflectionProperty.");
+		}
+		$empty = count($classes) === 0;
 		$result = [];
-		$src = $class_or_method_or_property;		
-		if (is_string($src)) {
-	        $split = explode("::", $src);
-	        $split[0] = trim($split[0]);
-	        if (!class_exists($split[0])) {
-	            return $result;
-	        }
-	        if (count($split) > 1) {
-	            $class = new ReflectionClass($split[0]);
-	            $split[1] = trim($split[1]);
-	            if ($class->hasMethod($split[1])) {
-	                $src = new ReflectionMethod($split[0], $split[1]);
-	            } else if ($class->hasProperty($split[1])) {
-	                $src = new ReflectionProperty($split[0], $split[1]);
-	            } else {
-	                return $result;
-	            }
-	        } else {
-	            $src = new ReflectionClass($split[0]);
-	        }
-	    }
-	    if (!method_exists($src, 'getDocComment')) {
-	        return $result;
-	    }
-	    $doc = $src->getDocComment();
-	    preg_match_all('#@(.*?)\n#s', $doc, $annotations);
-	    $annotations = $annotations[1];
-	    $argv = func_get_args();
-    	$narg = func_num_args();
-	    if ($narg === 1) {
-	    	foreach ($annotations as $str) {
-	    		array_push($result, $str);
-	    	} 
-	    } else {
-	    	foreach ($annotations as $str) {
-	    		$key = null;
-	    		$val = "";
-	    		for ($i = 1; $i < $narg; $i++) {
-	    			if (substr($str, 0, strlen($argv[$i])) === $argv[$i]) {
-	    				$key = $argv[$i];
-	    				$val = substr($str, strlen($argv[$i]));
-	    				break;
-	    			}
-	    		}
-	    		if ($key === null) continue;
-	    		if (!isset($result[$key])) {
-	            	$result[$key] = [];
-	        	}
-	        	array_push($result[$key], $val);	
-	    	}
-	    }
-	    return $result;
+		foreach ($annotations as $annotation) {
+			$clazz = get_class($annotation);			
+			if (!$empty && !in_array($clazz, $classes)) {
+				continue;
+			}
+			if (!isset($result[$clazz])) {
+				$result[$clazz] = [];
+			}
+			array_push($result[$clazz], $annotation);
+		}
+		return $result;
 	}	
 	
-	
-	
-	/**
-	 * Untuk mengubah string ke array, contoh: a=1&b=2 menjadi ["a"=>"1", "b"=>"2"]
-	 */
-	public static function parseStr($str, $start = "", $end = "") {
-		if (!is_string($str)) {
-			return [];
-		}
-		$txt = $str;
-		if ($start !== "") {
-			$pos = strpos($txt, $start);
-			if ($pos !== false) {
-				$txt = substr($txt, $pos + 1);
-			}
-		}
-		if ($end !== "") {
-			$pos = strrpos($txt, $end);
-			if ($pos !== false) {
-				$txt = substr($txt, 0, $pos);
-			}	
-		}
-		parse_str($txt, $result);
-		return $result;
-	}
-
 
 	/**
 	* Untuk mengubah object menjadi array format
 	*/
-	public static function formatObject($object, $show_null = false) {
+	public static function formatObject($object) {
+		$settings  = Common::getSettings()[Common::SETTING_SETTINGS];
+		$show_null =  isset($settings[Common::SETTING_FORMAT_SHOW_NULL]) ? $settings[Common::SETTING_FORMAT_SHOW_NULL] : false;
+		
 		$result = null;
 		
 		// Array
@@ -282,49 +251,33 @@ final class ObjectUtil
 			} else if ($object instanceof BaseFormat) {
 				$result = $object->toFormatObject();
 			} else {
-				$class = new ReflectionClass(\Doctrine\Common\Util\ClassUtils::getRealClass(get_class($object)));
-				//$class = new ReflectionClass(get_class($object));
-				$annot = self::scanAnnotation($class, Common::ANNOTATION_FORMAT);
-				if (isset($annot[Common::ANNOTATION_FORMAT])) {
-					$class_show_null = $show_null;
-					$arr = $annot[Common::ANNOTATION_FORMAT];
-					$str = count($arr) > 0 ? $arr[0] : null;
-					$param = self::parseStr($str, "(", ")");
-					if (isset($param["show_null"])) {
-						$shnull = $param["show_null"];
-						$class_show_null = "1" === $shnull || "true" === $shnull;
+				$class = new ReflectionClass(ClassUtils::getRealClass(get_class($object)));
+				$reader = new AnnotationReader();
+				$format = $reader->getClassAnnotation($class, Format::class);
+				if (isset($format)) {
+					if ($format->ignore === true) {
+						return null;
 					}
-
 					$result = [];
 					$props = $class->getProperties(ReflectionProperty::IS_PUBLIC);
 					foreach ($props as $prop) {
-						$prop_show_null = $class_show_null;
-						$annot = self::scanAnnotation($prop, Common::ANNOTATION_FORMAT);
-						if (!isset($annot[Common::ANNOTATION_FORMAT])) {
+						$format = $reader->getPropertyAnnotation($prop, Format::class);
+						if (isset($format) && $format->ignore === true) {
 							continue;
 						}
 						$key = $prop->getName();
-						$str = $annot[Common::ANNOTATION_FORMAT];
-						if (count($str) > 0) {
-							$str = $str[0];
-							$param = self::parseStr($str, "(", ")");
-							if (isset($param["alias"])) {
-								$key = trim($param["alias"]);
-							}
-							if (isset($param["show_null"])) {
-								$shnull = $param["show_null"];
-								$prop_show_null = "1" === $shnull || "true" === $shnull;			
-							}
+						if (isset($format) && $format->alias !== "") {
+							$key = $format->alias;
 						}
 						$value = $prop->getValue($object);
-						if ($value !== null) {
+						if (isset($value)) {
 							$result[$key] = self::formatObject($value);	
 						} else {
-							if ($prop_show_null) {
-								$result[$key] = self::formatObject($value);	
+							if ($show_null) {
+								$result[$key] = $value;	
 							}
 						}
-					}
+					}				
 				} else if ($object instanceof \DateTime) {
 					$result = $object->getTimestamp();
 				} else {
@@ -413,11 +366,15 @@ final class ObjectUtil
 			} else if ($ref_class->hasProperty($name)) {
 				$prop = $ref_class->getProperty($name);
 				if ($prop->isPublic()) {
-					$annotation = self::scanAnnotation($prop, Common::ANNOTATION_FORMAT);
-					if (isset($annotation[Common::ANNOTATION_FORMAT])) {
-						$param = self::parseStr($annotation[Common::ANNOTATION_FORMAT][0], "(", ")");
-						if (isset($param["type"])) {
-							$new_ins = self::tryCreateInstance(trim($param["type"]));
+					$annotation = self::scanAnnotation($prop, Format::class);
+					if (isset($annotation[Format::class])) {
+						$format = $annotation[Format::class][0];
+						$type = $format->type;
+						if (isset($type) && $type instanceof Type) {
+							$type = $type->value;
+						}
+						if (isset($type)) {
+							$new_ins = self::tryCreateInstance($type);
 							if (null === $new_ins) {
 								return;
 							}
@@ -425,7 +382,7 @@ final class ObjectUtil
 								$prop->setValue($instance, $value);
 							} else if (is_array($value) && array_keys($value) !== range(0, count($value) - 1)) {
 								foreach ($value as $mkey => $mval) {
-									self::setObjectValue(new ReflectionClass(get_class($new_ins)), $new_ins, $mkey, $mval);			
+									self::setObjectValue(new ReflectionClass(get_class($new_ins)), $new_ins, $mkey, $mval);
 								}
 								$prop->setValue($instance, $new_ins);
 							}
@@ -471,13 +428,17 @@ final class ObjectUtil
 						$obj_val = $prop->getValue($instance);
 						if (null === $obj_val) {
 							// Mengambil type dari annotation FORMAT
-							$annotation = self::scanAnnotation($prop, Common::ANNOTATION_FORMAT);
-							if (isset($annotation[Common::ANNOTATION_FORMAT])) {
-								$param = self::parseStr($annotation[Common::ANNOTATION_FORMAT][0], "(", ")");
-								if (isset($param["type"])) {
-									$obj_val = self::tryCreateInstance(trim($param["type"]));
+							$annotation = self::scanAnnotation($prop, Format::class);
+							if (isset($annotation[Format::class])) {
+								$format = $annotation[Format::class][0];
+								$type = $format->type;
+								if (isset($type) && $type instanceof Type) {
+									$type = $type->value;
 								}
-							}	
+								if (isset($type)) {
+									$obj_val = self::tryCreateInstance($type);
+								}
+							}
 						}	
 					}						
 					if (null === $obj_val) {
@@ -526,7 +487,7 @@ final class ObjectUtil
 
 	private static function tryCreateInstance($class) {
 		try {
-			$ref_class = new ReflectionClass($class);
+			$ref_class = $class instanceof ReflectionClass ? $class : new ReflectionClass($class);
 			$instance  = $ref_class->newInstance();
 			return $instance;
 		} catch (Exception $e) {

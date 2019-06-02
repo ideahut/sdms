@@ -1,8 +1,10 @@
 <?php
 namespace Ideahut\sdms\object;
 
+use Ideahut\sdms\annotation as IDH;
+
 /**
- * @FORMAT(show_null=false)
+ * @IDH\Format
  */
 class Page 
 {
@@ -21,46 +23,34 @@ class Page
 		}
     }
 
-	/**
-     * @DESCRIPTION Indeks halaman
-     * @TYPE integer
-	 * @FORMAT
+    /**
+     * @IDH\Document(description="Page index", type="integer")
      */
 	public $index = 1;
 
 	/**
-	 * @DESCRIPTION Jumlah data per halaman
-	 * @TYPE integer
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="Maximum rows per page", type="integer")
+     */
 	public $size = 20;
 	
 	/**
-	 * @DESCRIPTION Total halaman
-	 * @TYPE integer
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="Page total", type="integer")
+     */
 	public $total;
 	
 	/**
-	 * @DESCRIPTION Total data yang tersedia, jika bernilai False maka total halaman tidak tersedia
-	 * @TYPE boolean / integer
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="Total data or flag (true/false) to count total", type="integer / boolean")
+     */
 	public $count = false;
 	
 	/**
-	 * @DESCRIPTION Daftar data
-	 * @TYPE Array[object]
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="List of data", type="Array[data]")
+     */
 	public $data; // Array Index
 	
 	/**
-	 * @DESCRIPTION Informasi tambahan
-	 * @TYPE Array[{key: value}]
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="Information", type="Array[{key: value}]")
+     */
 	public $info; // Array Associative
 
 

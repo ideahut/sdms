@@ -12,7 +12,6 @@ abstract class EntityVersion extends Entity
 	/**
      * @ORM\Column(name = "VERSION_", type = "bigint", nullable = false, options = {"unsigned":true})
 	 * @ORM\Version
-     * @FORMAT
      */
 	public $version;
 	

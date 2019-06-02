@@ -1,8 +1,10 @@
 <?php
 namespace Ideahut\sdms\object;
 
+use Ideahut\sdms\annotation as IDH;
+
 /**
- * @FORMAT(show_null=false)
+ * @IDH\Format
  */
 class CodeMsg
 {
@@ -26,31 +28,23 @@ class CodeMsg
 
 
     /**
-     * @DESCRIPTION Kode
-     * @TYPE string atau integer
-	 * @FORMAT
+     * @IDH\Document(description="Code", type="string / integer")
      */
 	public $code;
 	
 	/**
-	 * @DESCRIPTION Object
-	 * @TYPE object
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="Object", type="mixed")
+     */
 	public $object;
 	
 	/**
-	 * @DESCRIPTION Field
-	 * @TYPE string / integer
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="Field", type="string")
+     */
 	public $field;
 	
 	/**
-	 * @DESCRIPTION Deskripsi
-	 * @TYPE string
-	 * @FORMAT
-	 */
+	 * @IDH\Document(description="Message", type="string")
+     */
 	public $message;
 	
 }
