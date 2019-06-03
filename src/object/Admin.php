@@ -4,7 +4,6 @@ namespace Ideahut\sdms\object;
 use Ideahut\sdms\annotation as IDH;
 
 /**
- * @IDH\Document(ignore=true)
  * @IDH\Format
  */
 class Admin
@@ -25,8 +24,8 @@ class Admin
 	public $mapkey;
 
 	/**
-      * @IDH\Document(description="Page", type=\Ideahut\sdms\object\Page::class)
-      * @IDH\Format(type=\Ideahut\sdms\object\Page::class)
+      * @IDH\Document(description="Page", type=Page::class)
+      * @IDH\Format(type=Page::class)
       */
 	public $page;
 

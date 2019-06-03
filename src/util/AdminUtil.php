@@ -12,6 +12,8 @@ use \Ideahut\sdms\entity\EntityDao;
 use \Ideahut\sdms\object\Admin;
 use \Ideahut\sdms\object\Result;
 
+use \Ideahut\sdms\exception\ResultException;
+
 final class AdminUtil
 {
 
@@ -56,24 +58,23 @@ final class AdminUtil
                 $access_object = (new ReflectionClass($access_class))->newInstanceArgs(array($access_param));
                 $access_data = $access_object->validate($request, $app, $args);
                 if ($access_data instanceof Result) {
-                    return $admin_resp->response($request, $response, $access_data);
+                    throw new ResultException($access_data);
                 }                
             }
 
             $action = strtolower($path_array[0]);
             if (!in_array($action, self::$ACTIONS)) {
-            	$result = Result::ERROR(Result::ERR_INVALID, "action: " . $action);
-                return $admin_resp->response($request, $response, $result);
+            	throw new ResultException($result);
             }
             $admin = RequestUtil::bodyToObject($request, Admin::class);
             if (!isset($admin->entity)) {
                 $result = Result::ERROR(Result::ERR_REQUIRED, "entity");
-                return $admin_resp->response($request, $response, $result);
+                throw new ResultException($result);
             }
             $entity_class = self::getEntityClass($settings, trim($admin->entity));
             if (null === $entity_class) {
                 $result = Result::ERROR(Result::ERR_NOT_FOUND, "entity");
-                return $admin_resp->response($request, $response, $result);   
+                throw new ResultException($result);
             }
             $manager    = $app->getContainer()->get(Common::SETTING_ENTITY_MANAGER);
             $manager    = $app->getContainer()->get(Common::SETTING_ENTITY_MANAGER);
@@ -81,7 +82,7 @@ final class AdminUtil
             
             if (!$dao_class->hasMethod($action)) {
                 $result = Result::ERROR(Result::ERR_NOT_SUPPORTED, "Action (" . $action . ")");
-                return $admin_resp->response($request, $response, $result);
+                throw new ResultException($result);
             }
             
             $dao_method = $dao_class->getMethod($action);
@@ -112,6 +113,9 @@ final class AdminUtil
             }
             $result = Result::SUCCESS($data);
             return $admin_resp->response($request, $response, $result);
+
+        } catch(ResultException $e) {
+            return $admin_resp->response($request, $response, $e->getResult());
         } catch(Exception $e) {
             $app->getContainer()->get(Common::SETTING_LOGGER)->error($e->getMessage());
             $result = Result::ERROR(Result::ERR_ANY, $e->getMessage());

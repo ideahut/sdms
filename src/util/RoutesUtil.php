@@ -14,6 +14,8 @@ use \Ideahut\sdms\Common;
 use \Ideahut\sdms\annotation\Method;
 use \Ideahut\sdms\annotation\Access;
 
+use \Ideahut\sdms\exception\ResultException;
+
 
 final class RoutesUtil {
 
@@ -86,7 +88,7 @@ final class RoutesUtil {
                 $access_rule = isset($annotation[Access::class]) ? $annotation[Access::class][0] : null;
                 $access_data = $access_object->validate($access_rule, $ctrl_method);
                 if ($access_data instanceof Result) {
-                    return $route_resp->response($request, $response, $access_data);
+                    throw new ResultException($access_data);
                 }                
             }            
             $ctrl_object->setAccess($access_object);
@@ -97,6 +99,8 @@ final class RoutesUtil {
                 return $route_resp->response($request, $response, $result);
             }
             return $response;
+        } catch(ResultException $e) {
+            return $route_resp->response($request, $response, $e->getResult());
         } catch(Exception $e) {
             $app->getContainer()->get(Common::SETTING_LOGGER)->error($e->getMessage());
             $result = Result::ERROR(Result::ERR_SYSTEM);

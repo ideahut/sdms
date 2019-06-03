@@ -100,8 +100,17 @@ final class DocsUtil {
                     $path = $mpath . "/" . $path;
 
                     $document = $annotations[IDH\Document::class][0];
+                    $annotdesc = $document->description;
 
-                    $description = isset($document->description) ? "<br/><small><i>" . trim($document->description) . "</i></small>" : "";
+                    $description = "";
+                    if (isset($annotdesc)) {
+                        if (!is_array($annotdesc)) {
+                            $annotdesc = [$annotdesc];
+                        }
+                        foreach ($annotdesc as $text) {
+                            $description .= "<br/><small><i>" . trim($text) . "</i></small>";
+                        }
+                    }
                     if (isset($annotations[IDH\Access::class]) && $annotations[IDH\Access::class][0]->public === true) {
                         $description .= "<br/><small><i><b><font color=\"#F00\">PUBLIC</font></b></i></small>";
                     }
@@ -207,8 +216,17 @@ final class DocsUtil {
                         $type = self::getTypeTag($document->type);
                     }
 
-                                        
-                    $description = isset($document->description) ? trim($document->description) : "";
+                    $description = "";
+                    $annotdesc = $document->description;
+                    if (isset($annotdesc)) {
+                        if (!is_array($annotdesc)) {
+                            $annotdesc = [$annotdesc];
+                        }
+                        foreach ($annotdesc as $text) {
+                            $description .= trim($text) . "<br/>";
+                        }
+                        $description = substr($description, 0, -5);                        
+                    }
 
                     $name = $prop->name;
                     if (isset($annotations[ORM\Format::class])) {
@@ -273,9 +291,6 @@ final class DocsUtil {
 
     private static function getTypeTag($type) {
         $ctype = $type;
-        if ($ctype instanceof IDH\Type) {
-            $ctype = $ctype->value;
-        }
         $result = '';
         if (isset($ctype)) {
             if (is_array($ctype) && count($ctype) != 0) {

@@ -39,32 +39,32 @@ abstract class Entity
 
 
     public function refresh($manager, $logger = null) {
-        return (self::dao($manager, get_class($this), $logger))->refresh($this);
+        return (self::create($manager, get_class($this), $logger))->refresh($this);
     }
 
 	public function save($manager, $logger = null) {
-        return (self::dao($manager, get_class($this), $logger))->save($this);
+        return (self::create($manager, get_class($this), $logger))->save($this);
     }
 
     public function delete($manager, $logger = null) {
-        return (self::dao($manager, get_class($this), $logger))->delete($this);
+        return (self::create($manager, get_class($this), $logger))->delete($this);
     }
 
-    public static function objects($manager, $logger = null) {
-        return self::dao($manager, get_called_class(), $logger);
+    public static function dao($manager, $logger = null) {
+        return self::create($manager, get_called_class(), $logger);
     }
 
     public static function repo($class, $manager, $logger = null) {
         if (!is_subclass_of($class, Repository::class)) {
             throw new Exception("Class '" . $class . "'' is not sub class of " . Repository::class);   
         }
-        $dao = self::dao($manager, get_called_class(), $logger);
+        $dao = self::create($manager, get_called_class(), $logger);
         return Proxy::newProxyInstance($class, new RepoHandler($class, $dao));
     }
 
     
 
-    private static function dao($manager, $class, $logger = null) {
+    private static function create($manager, $class, $logger = null) {
         $dao = new EntityDao($manager, $class);
         if (null !== $logger) {
             $dao->logger($logger);

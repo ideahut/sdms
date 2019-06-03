@@ -14,7 +14,7 @@ final class Document
     public $ignore = false;
 
 	/**
-     * @var string
+     * @var mixed
      */
     public $description;
 

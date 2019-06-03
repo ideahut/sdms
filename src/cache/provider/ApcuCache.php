@@ -22,6 +22,9 @@ class ApcuCache extends Cache
 	private $unlimited = false;
 
 	public function __construct(array $groups, array $parameters = []) {
+		if (!extension_loaded('apcu')) {
+			throw new \Exception("Extention 'apcu' is not loaded.");			
+		}
         parent::__construct($groups, $parameters);
         if (isset($this->parameters[Cache::UNLIMITED])) {
             $this->unlimited = strtolower(strval($this->parameters[Cache::UNLIMITED]));

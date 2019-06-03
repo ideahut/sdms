@@ -54,7 +54,6 @@ final class Common
 	const SETTING_ACCESS			= "access";
 	const SETTING_CLASS				= "class";
 	const SETTING_PARAMETER			= "parameter";
-	const SETTING_VALIDATOR			= "validator";
 	const SETTING_DOCUMENT			= "document";
 	const SETTING_SUFFIX			= "suffix";
 	const SETTING_ENTITY			= "entity";

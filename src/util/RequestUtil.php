@@ -12,6 +12,9 @@ use \Awurth\SlimValidation\Validator;
 use \Ideahut\sdms\Common;
 use \Ideahut\sdms\object\Result;
 
+use \Ideahut\sdms\annotation\Validator as IDH_V;
+
+use \Ideahut\sdms\exception\ResultException;
 
 
 final class RequestUtil
@@ -84,79 +87,95 @@ final class RequestUtil
 	 * validate
 	 *   - Memanggil class validator untuk menvalidasi request atau data/object.
 	 *   - $method adalah ReflectionMethod atau nama method yang akan divalidasi
-	 *   - $input bisa request atau object
-	 *   - untuk request maka di validator harus menggunakan $input->getParam("name"),
-	 *   - untuk object maka di validator menggunakan $input->name atau $input->getName()
-	 *   
+	 * urutan arguments:
+	 *   0. service atau controller
+	 *   1. method (optional) -> cth: validate($this, __METHOD__)
+	 *   2. jika method tidak tersedia maka urutan selanjutnya adalah $input dan $optional 
+	 *   Contoh penggunaan:
+	 *		validate($this)
+	 * 		validate($this, $input, $optional)
+	 *		validate($this, __METHOD__)
+	 * 		validate($this, __METHOD__, $input, $optional)	 
 	 */
-	public static function validate($controller, $method, $input = null, array $optional = null) {
-		$themethod = $method;
-		if (is_string($themethod) && strrpos($themethod, "::") !== false) {
-			$themethod = new ReflectionMethod($themethod);
-		}
-		if (is_string($themethod)) {
-			$namespace = "";
-		    $config = $controller->getConfig();
-		    if (isset($config[Common::SETTING_VALIDATOR])) {
-		    	$namespace = trim($config[Common::SETTING_VALIDATOR]);
-		    }
-			$split = array_map("trim", explode("->", $themethod));
-			if (count($split) < 2) {
-		    	throw new Exception("Invalid validator format: [CLASS]->[METHOD]");
-		    }
-		    $nameclass = $namespace . $split[0];
-		    if (!class_exists($nameclass)) {
-		        throw new Exception("Validator class is not found, for: " . $nameclass);
-		    }
-		    $namemethod = $split[1];
-		    
-		    $vobject = null;
-		    $vclass  = new ReflectionClass($nameclass);
-		    if (!$vclass->hasMethod($namemethod)) {
-		    	throw new Exception("Validator method '" . $namemethod . "' is not found in class '" . $nameclass . "'");
-		    }
-		    $vmethod = $vclass->getMethod($namemethod);
-		    if (!$vmethod->isPublic()) {
-		    	throw new Exception("Validator method '" . $namemethod . "' is not a public method in class '" . $nameclass . "'");
-		    }
-		    $vparams = $vmethod->getParameters();
-		    $vcount  = count($vparams);
-		    $vinput  = isset($input) ? $input : $controller->getRequest();
-		    $vargs  = [];
+	public static function validate($service_or_controller) {
+		$narg = func_num_args();
+		$argv = func_get_args();
+		
+		$request = $service_or_controller->getRequest();
 
-			if ($vcount !== 0) {
-				$vargs[0] = $vinput;
-				if ($vcount > 1) {
-					$vargs[1] = isset($optional) ? $optional : null;
-					for ($i = 2; $i < $vcount; $i++) {
-						$vargs[$i] = null;
-					}
-				}			
+		$method = null;
+		$optional = null;
+		$input = null;
+		$sargs = 1;
+		if ($narg > $sargs) {
+			if (is_string($argv[$sargs])) {
+				$pos = strrpos($argv[$sargs], "::");
+				if ($pos !== false && get_class($service_or_controller) === substr($argv[$sargs], 0, $pos)) {
+					$method = new ReflectionMethod($argv[$sargs]);
+					$sargs += 1;
+				}
+			}	
+		}
+		if (!isset($method)) {
+			$ex = new Exception(); 
+    		$trace = $ex->getTrace(); 
+      		$caller = $trace[1];
+      		if ($caller["class"] === get_class($service_or_controller)) {
+      			$method = new ReflectionMethod($caller["class"] . "::" . $caller["function"]);      			
+      		}      		
+		}
+		if ($narg > $sargs) {
+			$input = $vargs[$sargs];
+			$sargs += 1;
+		}
+		if ($narg > $sargs) {
+			$optional = $vargs[$sargs];
+		}
+
+		$annotation = ObjectUtil::scanAnnotation($method, IDH_V::class);
+		if (!isset($annotation[IDH_V::class])) {
+			return;
+		}
+		$validator = $annotation[IDH_V::class][0]->value;
+		if (!isset($validator)) {
+			return;
+		}
+		if (!is_array($validator)) {
+			$validator = [$validator];
+		}
+		foreach ($validator as $class_method) {
+			if (!class_exists($class_method->class)) {
+				throw new Exception("Validator class is not found, for: " . $class_method->class);
 			}
-			$rules = $vmethod->invoke($vmethod->isStatic() ? null : $vclass->newInstance(), $vargs);
-		    if ($rules !== null) { 
-		    	if ($rules instanceof Result) {
-		    		return $rules;
+			$class  = new ReflectionClass($class_method->class);
+		    if (!$class->hasMethod($class_method->method)) {
+		    	throw new Exception("Validator method '" . $class_method->method . "' is not found in class '" . $class_method->class . "'");
+		    }
+		    $method = $class->getMethod($class_method->method);
+		    $result = $method->invoke($method->isStatic() ? null : $class->newInstance(), $request, $input, $optional);
+		    if ($result !== null) { 
+		    	if ($result instanceof Result) {
+		    		throw new ResultException($result);
 		    	} else {
 				    $validator = new Validator();
-				    $result = $validator->validate($vinput, $rules);		    
+				    $result = $validator->validate(isset($input) ? $input : $request, $result);		    
 				    if (!$result->isValid()) {
-				    	return Result::ERROR("NOT_VALID", $validator->getErrors());
+				    	throw new ResultException(Result::ERROR("NOT_VALID", $validator->getErrors()));
 				    }
 				}
-			}			
-		} else {
-			$annotation = ObjectUtil::scanAnnotation($themethod, Common::ANNOTATION_VALIDATOR);
-			if (isset($annotation[Common::ANNOTATION_VALIDATOR])) {
-		    	foreach($annotation[Common::ANNOTATION_VALIDATOR] as $vstr){
-		    		$result = self::validate($controller, $vstr, $input, $optional);
-		    		if (isset($result)) {
-		    			return $result;
-		    		}
-		    	}
-		    }		    
+			}
 		}
-	    return null;
 	}
-	
+
+
+	/**
+	 * throw
+	 *
+	 * Send error Result as Http Response
+	 *
+	 */
+	public static function throw(Result $result) {
+		throw new ResultException($result);		
+	}
+		
 }
