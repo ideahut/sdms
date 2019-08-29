@@ -64,6 +64,7 @@ final class AdminUtil
 
             $action = strtolower($path_array[0]);
             if (!in_array($action, self::$ACTIONS)) {
+                $result = Result::ERROR(Result::ERR_INVALID, "Action (" . $action . ")");
             	throw new ResultException($result);
             }
             $admin = RequestUtil::bodyToObject($request, Admin::class);
@@ -77,14 +78,7 @@ final class AdminUtil
                 throw new ResultException($result);
             }
             $manager    = $app->getContainer()->get(Common::SETTING_ENTITY_MANAGER);
-            $manager    = $app->getContainer()->get(Common::SETTING_ENTITY_MANAGER);
             $dao_class  = new ReflectionClass(EntityDao::class);
-            
-            if (!$dao_class->hasMethod($action)) {
-                $result = Result::ERROR(Result::ERR_NOT_SUPPORTED, "Action (" . $action . ")");
-                throw new ResultException($result);
-            }
-            
             $dao_method = $dao_class->getMethod($action);
             $dao_obj    = $dao_class->newInstance();
             
